@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import React, { useState } from "react";
 
 const Login = ({
@@ -14,6 +15,16 @@ const Login = ({
     e.preventDefault();
     // Placeholder: Add authentication logic here
     onLogin();
+    invoke("login_emailpassword", { email, password })
+      .then(() => {
+        console.log("Login successful");
+        console.log("Email:", email);
+        onLogin();
+      })
+      .catch((error) => {
+        console.error("Login failed:", error);
+        // Handle error (e.g., show a notification)
+      });
   };
 
   return (

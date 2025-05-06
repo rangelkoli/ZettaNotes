@@ -1,4 +1,10 @@
 import React, { useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import Login from "./Login";
 import Signup from "./Signup";
 import YooptaEditor, {
@@ -9,6 +15,7 @@ import YooptaEditor, {
   YooptaContentValue,
   YooptaOnChangeOptions,
 } from "@yoopta/editor";
+import { invoke } from "@tauri-apps/api/core";
 
 import Paragraph from "@yoopta/paragraph";
 import Blockquote from "@yoopta/blockquote";
@@ -37,7 +44,7 @@ import ActionMenuList, {
 } from "@yoopta/action-menu-list";
 import Toolbar, { DefaultToolbarRender } from "@yoopta/toolbar";
 import LinkTool, { DefaultLinkToolRender } from "@yoopta/link-tool";
-import { WITH_BASIC_INIT_VALUE } from "./init_vakue"; // Adjust the import path as necessary
+// import { WITH_BASIC_INIT_VALUE } from "./init_value"; // Adjust the import path as necessary
 import "./App.css"; // Adjust the import path as necessary
 
 import { useMemo, useRef, useState as useReactState } from "react";
@@ -129,22 +136,52 @@ const TOOLS = {
 const MARKS = [Bold, Italic, CodeMark, Underline, Strike, Highlight];
 
 function WithBaseFullSetup() {
-  const [value, setValue] = useReactState(WITH_BASIC_INIT_VALUE);
+  // Try to load notes from localStorage, fallback to WITH_BASIC_INIT_VALUE
+  const [notes, setNotes] = useReactState<YooptaContentValue | undefined>(
+    undefined
+  );
+  invoke<string>("load_notes").then((response) => {
+    setNotes(response ? JSON.parse(response) : undefined);
+  });
+  const getInitialValue = () => {
+    const saved = localStorage.getItem("zettanotes_content");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return;
+      }
+    }
+    return notes || undefined;
+  };
+  const [value, setValue] = useReactState(getInitialValue());
   const editor = useMemo(() => createYooptaEditor(), []);
   const selectionRef = useRef(null);
+
+  const [changed, setChanged] = useReactState("");
 
   const onChange = (
     newValue: YooptaContentValue,
     options: YooptaOnChangeOptions
   ) => {
     setValue(newValue);
+    // Save to localStorage on every change
+    invoke<string>("save_notes", { notes: JSON.stringify(newValue) })
+      .then((response) => {
+        console.log(String(response)); // "Notes saved successfully!"
+        setChanged(response);
+      })
+      .catch((error) => {
+        console.error("Error saving notes:", error);
+      });
   };
 
   return (
     <div
-      className='md:py-[100px] md:pl-[200px] md:pr-[80px] px-[20px] pt-[80px] pb-[40px] flex justify-center bg-gray-100'
+      className='lg:py-[100px] lg:pl-[200px] lg:pr-[80px] px-[20px] pt-[80px] pb-[40px] flex justify-center'
       ref={selectionRef}
     >
+      <div>{changed}</div>
       <YooptaEditor
         editor={editor}
         plugins={plugins}
@@ -156,11 +193,6 @@ function WithBaseFullSetup() {
         autoFocus
         style={{
           width: "100%",
-
-          backgroundColor: "#fff",
-          borderRadius: "8px",
-          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-          padding: "20px",
         }}
       />
     </div>
@@ -168,25 +200,41 @@ function WithBaseFullSetup() {
 }
 
 function App() {
-  const [screen, setScreen] = useState<"login" | "signup" | "editor">("login");
-
-  if (screen === "login") {
-    return (
-      <Login
-        onLogin={() => setScreen("editor")}
-        onSwitchToSignup={() => setScreen("signup")}
-      />
-    );
-  }
-  if (screen === "signup") {
-    return (
-      <Signup
-        onSignup={() => setScreen("editor")}
-        onSwitchToLogin={() => setScreen("login")}
-      />
-    );
-  }
-  return <WithBaseFullSetup />;
+  const res = useReactState<string | null>(null);
+  invoke<string>("greet", { name: "World" }).then((response) => {
+    console.log(response); // "Hello, World! You've been greeted from Rust!"
+    res[1](response);
+  });
+  console.log(res);
+  return (
+    <>
+      <div>{res[0]}</div>
+      <Router>
+        <Routes>
+          <Route
+            path='/login'
+            element={
+              <Login
+                onLogin={() => window.location.replace("/editor")}
+                onSwitchToSignup={() => window.location.replace("/signup")}
+              />
+            }
+          />
+          <Route
+            path='/signup'
+            element={
+              <Signup
+                onSignup={() => window.location.replace("/editor")}
+                onSwitchToLogin={() => window.location.replace("/login")}
+              />
+            }
+          />
+          <Route path='/editor' element={<WithBaseFullSetup />} />
+          <Route path='*' element={<Navigate to='/login' replace />} />
+        </Routes>
+      </Router>
+    </>
+  );
 }
 
 export default App;

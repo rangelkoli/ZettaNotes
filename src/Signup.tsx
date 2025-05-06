@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-
+import { invoke } from "@tauri-apps/api/core";
 const Signup = ({
   onSignup,
   onSwitchToLogin,
@@ -13,7 +13,16 @@ const Signup = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Placeholder: Add signup logic here
-    onSignup();
+    invoke("signup_emailpassword", { email, password })
+      .then(() => {
+        console.log("Signup successful");
+        console.log("Email:", email);
+        onSignup();
+      })
+      .catch((error) => {
+        console.error("Signup failed:", error);
+        // Handle error (e.g., show a notification)
+      });
   };
 
   return (
