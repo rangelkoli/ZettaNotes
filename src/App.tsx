@@ -48,7 +48,7 @@ import LinkTool, { DefaultLinkToolRender } from "@yoopta/link-tool";
 import "./App.css"; // Adjust the import path as necessary
 
 import { useMemo, useRef, useState as useReactState } from "react";
-
+import SidebarComponent from "./components/sidebar"; // Adjust the import path as necessary
 const plugins = [
   Paragraph,
   Table,
@@ -136,7 +136,6 @@ const TOOLS = {
 const MARKS = [Bold, Italic, CodeMark, Underline, Strike, Highlight];
 
 function WithBaseFullSetup() {
-  // Try to load notes from localStorage, fallback to WITH_BASIC_INIT_VALUE
   const [notes, setNotes] = useReactState<YooptaContentValue | undefined>(
     undefined
   );
@@ -159,6 +158,9 @@ function WithBaseFullSetup() {
   const selectionRef = useRef(null);
 
   const [changed, setChanged] = useReactState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useReactState(false);
+
+  const handleSidebarToggle = () => setSidebarCollapsed((prev) => !prev);
 
   const onChange = (
     newValue: YooptaContentValue,
@@ -177,45 +179,50 @@ function WithBaseFullSetup() {
   };
 
   return (
-    <div
-      className='lg:py-[100px] lg:pl-[200px] lg:pr-[80px] px-[20px] pt-[80px] pb-[40px] flex justify-center'
-      ref={selectionRef}
-    >
-      <div>{changed}</div>
-      <YooptaEditor
-        editor={editor}
-        plugins={plugins}
-        tools={TOOLS}
-        marks={MARKS}
-        selectionBoxRoot={selectionRef}
-        value={value}
-        onChange={onChange}
-        autoFocus
-        style={{
-          width: "100%",
-        }}
+    <div className='relative'>
+      <SidebarComponent
+        className='fixed top-0 left-0 h-screen z-30'
+        collapsed={sidebarCollapsed}
+        onToggle={handleSidebarToggle}
       />
+      <div
+        className='lg:py-[100px] px-[20px] pt-[80px] pb-[40px] flex justify-center flex-col transition-all duration-300'
+        style={{
+          marginLeft: sidebarCollapsed ? "4rem" : "16rem", // 4rem = 64px (w-16), 16rem = 256px (w-64)
+        }}
+        ref={selectionRef}
+      >
+        <div>{changed}</div>
+        <YooptaEditor
+          editor={editor}
+          plugins={plugins}
+          tools={TOOLS}
+          marks={MARKS}
+          selectionBoxRoot={selectionRef}
+          value={value}
+          onChange={onChange}
+          autoFocus
+          style={{
+            width: "100%",
+          }}
+        />
+      </div>
     </div>
   );
 }
 
 function App() {
-  const res = useReactState<string | null>(null);
-  invoke<string>("greet", { name: "World" }).then((response) => {
-    console.log(response); // "Hello, World! You've been greeted from Rust!"
-    res[1](response);
-  });
-  console.log(res);
   return (
     <>
-      <div>{res[0]}</div>
       <Router>
         <Routes>
           <Route
             path='/login'
             element={
               <Login
-                onLogin={() => window.location.replace("/editor")}
+                onLogin={() => {
+                  window.location.replace("/dashboard");
+                }}
                 onSwitchToSignup={() => window.location.replace("/signup")}
               />
             }
@@ -224,12 +231,12 @@ function App() {
             path='/signup'
             element={
               <Signup
-                onSignup={() => window.location.replace("/editor")}
+                onSignup={() => window.location.replace("/dashboard")}
                 onSwitchToLogin={() => window.location.replace("/login")}
               />
             }
           />
-          <Route path='/editor' element={<WithBaseFullSetup />} />
+          <Route path='/dashboard' element={<WithBaseFullSetup />} />
           <Route path='*' element={<Navigate to='/login' replace />} />
         </Routes>
       </Router>
