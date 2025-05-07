@@ -5,23 +5,64 @@ interface SidebarProps {
   className?: string;
   collapsed: boolean;
   onToggle: () => void;
+  isDrawer?: boolean;
+  open?: boolean;
+  onClose?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
   className,
   collapsed,
   onToggle,
+  isDrawer = false,
+  open = false,
+  onClose,
 }) => {
+  // Drawer animation classes
+  const drawerClasses = isDrawer
+    ? `transition-transform duration-500 ease-in-out transform ${
+        open ? "translate-x-0" : "-translate-x-full"
+      } w-64`
+    : "";
+
   return (
     <div
-      className={`h-screen bg-gray-800 text-white ${
-        collapsed ? "w-16" : "w-64"
-      } ${className} transition-all duration-500 ease-in-out`}
+      className={`bg-gray-800 text-white ${
+        isDrawer
+          ? drawerClasses
+          : collapsed
+          ? "w-16"
+          : "w-64 transition-all duration-500 ease-in-out"
+      } ${className}`}
+      style={
+        isDrawer
+          ? { boxShadow: open ? "2px 0 8px rgba(0,0,0,0.2)" : undefined }
+          : {}
+      }
     >
       <div className='p-4 flex justify-between items-center'>
         {!collapsed && <h1 className='text-xl font-bold'>ZettaNotes</h1>}
-        <button onClick={onToggle} className='p-1 rounded hover:bg-gray-700'>
-          {collapsed ? (
+        <button
+          onClick={isDrawer ? onClose : onToggle}
+          className='p-1 rounded hover:bg-gray-700'
+          aria-label={isDrawer ? "Close sidebar" : "Toggle sidebar"}
+        >
+          {isDrawer ? (
+            <svg
+              xmlns='http://www.w3.org/2000/svg'
+              className='h-6 w-6'
+              fill='none'
+              viewBox='0 0 24 24'
+              stroke='currentColor'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M6 18L18 6M6 6l12 12'
+              />
+            </svg>
+          ) : collapsed ? (
             <svg
               xmlns='http://www.w3.org/2000/svg'
               className='h-6 w-6'

@@ -159,8 +159,11 @@ function WithBaseFullSetup() {
 
   const [changed, setChanged] = useReactState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useReactState(false);
+  const [sidebarOpen, setSidebarOpen] = useReactState(false); // for mobile drawer
 
   const handleSidebarToggle = () => setSidebarCollapsed((prev) => !prev);
+  const handleDrawerOpen = () => setSidebarOpen(true);
+  const handleDrawerClose = () => setSidebarOpen(false);
 
   const onChange = (
     newValue: YooptaContentValue,
@@ -180,11 +183,52 @@ function WithBaseFullSetup() {
 
   return (
     <div className='relative'>
+      {/* Mobile hamburger button */}
+      <button
+        className='fixed top-4 left-4 z-40 md:hidden bg-gray-800 text-white p-2 rounded shadow'
+        onClick={handleDrawerOpen}
+        aria-label='Open sidebar'
+      >
+        <svg
+          className='h-6 w-6'
+          fill='none'
+          stroke='currentColor'
+          viewBox='0 0 24 24'
+        >
+          <path
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth={2}
+            d='M4 6h16M4 12h16M4 18h16'
+          />
+        </svg>
+      </button>
       <SidebarComponent
-        className='fixed top-0 left-0 h-screen z-30'
+        className='fixed top-0 left-0 h-screen z-30 hidden md:block'
         collapsed={sidebarCollapsed}
         onToggle={handleSidebarToggle}
+        isDrawer={false}
+        open={false}
+        onClose={() => {}}
       />
+      {/* Drawer sidebar for mobile */}
+      <SidebarComponent
+        className={`fixed top-0 left-0 h-screen z-40 md:hidden ${
+          sidebarOpen ? "" : "pointer-events-none"
+        }`}
+        collapsed={false}
+        onToggle={() => {}}
+        isDrawer={true}
+        open={sidebarOpen}
+        onClose={handleDrawerClose}
+      />
+      {/* Overlay for mobile drawer */}
+      {sidebarOpen && (
+        <div
+          className='fixed inset-0  bg-opacity-40 z-30 md:hidden'
+          onClick={handleDrawerClose}
+        />
+      )}
       <div
         className='lg:py-[100px] px-[20px] pt-[80px] pb-[40px] flex justify-center flex-col transition-all duration-300'
         style={{
